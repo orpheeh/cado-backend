@@ -5,10 +5,14 @@ const autoIncrement = require('mongoose-auto-increment');
 autoIncrement.initialize(mongoose.connection);
 
 const UserModel = new mongoose.Schema({
-    uid: { type: Number, unique: true },
+    uid: { type: Number, unique: true},
     username: { type: String, unique: true, require: true },
     email: { type: String, unique: true, require: true },
-    password: { type: String, require: true }
+    password: { type: String, require: true },
+	
+	projects: [
+		{type: mongoose.Schema.Types.ObjectId, ref: 'Project'}
+	]
 });
 
 UserModel.plugin(autoIncrement.plugin, { model: 'User', field: 'uid' });
