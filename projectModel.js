@@ -6,7 +6,8 @@ autoIncrement.initialize(mongoose.connection);
 const ProjectModel = new mongoose.Schema({
 	title: { type: String, require: true },
 	pid: { type: Number, unique: true },
-	description: String,
+	zone: [ { lng: Number, lat: Number } ],
+	description: { type: String, default: 'Un nouveau projet' },
 	author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 

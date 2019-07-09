@@ -20,7 +20,10 @@ const app = express();
 //Parse All request to JSON and put it into req.body before read request
 app.use(bodyParser.json());
 
+app.use(bodyParser.urlencoded({extended: true}));
+
 app.use(cors());
+
 
 //Register User to CADO
 app.post('/api/register', (req, res) => {
@@ -140,7 +143,7 @@ app.post('/api/project/', (req, res) => {
 });
 
 //Get all project for auth user
-app.get('/api/project/', (req, res) => {
+app.get('/api/projects/', (req, res) => {
 	const token = req.headers['authorization'];
     jwt.verify(token, 'private.key', function (err, decoded) {
 	   Project.find({ author: decoded._id }, (err, projects) => {
@@ -153,6 +156,49 @@ app.get('/api/project/', (req, res) => {
     });
 });
 
+app.get('/api/project/:pid', (req, res) => {
+	const token = req.headers['authorization'];
+    jwt.verify(token, 'private.key', function (err, decoded) {
+	   Project.findOne({ author: decoded._id, pid: req.params.pid }, (err, project) => {
+			if(err){
+				errorHandler(err, res);
+			} else {
+				res.json( { status: 200, project} );
+			}
+	   });
+    });
+});
+
+app.post('/api/zone/', (req, res) => {
+	const token = req.headers['authorization'];
+    jwt.verify(token, 'private.key', function (err, decoded) {
+		console.log(req.body);
+	   	Project.findOne({ author: decoded._id, pid: req.body.pid }, (err1, project) => {
+			console.log(project);
+			if(err1){
+				errorHandler(err1, res);
+			} else {
+				if(req.body.action === 'remove'){
+					project.zone.pop();
+				} else {
+					project.zone.push({ lat: req.body.lat, lng: req.body.lng });
+				}
+				project.save((err, p) => {
+					console.log(err);
+					console.log(p);
+					if(err) {
+						res.status(403);
+						res.json({ status: 403, err});
+					} else {
+						res.json( { status: 200, p} );
+					}
+				});
+				
+			}
+	   });
+    });
+});
+
 function errorHandler(err, res){
 	res.status(403);
 	res.json({ status: 403, err});
@@ -160,17 +206,13 @@ function errorHandler(err, res){
 
 function verifyToken(req, res, next) {
     const token = req.headers['authorization'];
-	console.log('le fameux token: ' + token);
     if (token == null || token == '' || token === undefined) {
         res.sendStatus(401);
     }
-
     jwt.verify(token, 'private.key', function (err, decoded) {
         if (err) {
-            console.log("token error");
 			return next(err);
         }
-        console.log(decoded);
         next();
     });
 }
