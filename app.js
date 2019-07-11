@@ -4,14 +4,15 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const access = require('./access');
 require('./userModel');
 require('./projectModel');
 const User = mongoose.model('User');
 const Project = mongoose.model('Project');
 
 //Connect to DB
-mongoose.connect('mongodb://localhost:27017/cado', 
-{ useNewUrlParser: true, useFindAndModify: false, useCreateIndex: true });
+mongoose.connect('mongodb://localhost:27017/cado',
+	{ useNewUrlParser: true, useFindAndModify: false, useCreateIndex: true });
 mongoose.connection.on('error', () => console.log('Connection with DB fail !'));
 
 //Create app
@@ -21,7 +22,6 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
-
 
 //Register route
 app.post('/api/register', (req, res) => {
@@ -48,8 +48,7 @@ app.post('/api/auth', (req, res) => {
 	//Authentify user
 	User.findOne({ username: req.body.user }, (err, user) => {
 		if (err || user === null) {
-			res.status(401);
-			res.json({ status: 401 });
+			errorHandler(err, res, 401);
 			return;
 		}
 		bcrypt.compare(req.body.password, user.password, function (err2, result) {
@@ -69,11 +68,27 @@ app.post('/api/auth', (req, res) => {
 					res.json({ status: 200, token });
 				});
 			} else {
-				errorHandler(err, res);
+				errorHandler(err2, res);
 			}
 		});
 	});
 });
+
+app.use(verifyAccess);
+
+//Public route
+//Get project by id route
+app.get('/api/project/:pid', (req, res) => {
+	Project.findOne({ pid: req.params.pid }, (err, project) => {
+		if (err) {
+			errorHandler(err, res);
+		} else {
+			res.json({ status: 200, project });
+		}
+	});
+});
+
+//Private route
 
 //Verify Token before read and write on API
 app.use(verifyToken);
@@ -81,14 +96,14 @@ app.use(verifyToken);
 //Find one user route
 //Get informations for user who have the uid equal to token payload uid
 app.get('/api/user/', (req, res) => {
-	const token = req.headers['authorization'];
+	const token = req.headers['authorization'].split('Bearer ')[1];
 	jwt.verify(token, 'private.key', function (err, decoded) {
-		if(err){
+		if (err) {
 			errorHandler(err, res);
 		}
 		User.findOne({ uid: decoded.uid }, (err1, user) => {
-			if(err1){
-				errorHandler(err1, res);		
+			if (err1) {
+				errorHandler(err1, res);
 			}
 			res.json(user);
 		});
@@ -97,7 +112,7 @@ app.get('/api/user/', (req, res) => {
 
 //Create New project route
 app.post('/api/project/', (req, res) => {
-	const token = req.headers['authorization'];
+	const token = req.headers['authorization'].split('Bearer ')[1];
 	jwt.verify(token, 'private.key', function (err, decoded) {
 		req.body.author = decoded._id;
 		const project = new Project(req.body);
@@ -126,9 +141,9 @@ app.post('/api/project/', (req, res) => {
 
 //Get all project of authentifiate user
 app.get('/api/projects/', (req, res) => {
-	const token = req.headers['authorization'];
+	const token = req.headers['authorization'].split('Bearer ')[1];
 	jwt.verify(token, 'private.key', function (err1, decoded) {
-		if(err1){
+		if (err1) {
 			errorHandler(err1, res);
 		}
 		Project.find({ author: decoded._id }, (err, projects) => {
@@ -141,25 +156,11 @@ app.get('/api/projects/', (req, res) => {
 	});
 });
 
-//Get project by id route
-app.get('/api/project/:pid', (req, res) => {
-	const token = req.headers['authorization'];
-	jwt.verify(token, 'private.key', function (err, decoded) {
-		Project.findOne({ author: decoded._id, pid: req.params.pid }, (err, project) => {
-			if (err) {
-				errorHandler(err, res);
-			} else {
-				res.json({ status: 200, project });
-			}
-		});
-	});
-});
-
 //Add point { lng, lat } at zone route
 app.post('/api/zone/', (req, res) => {
-	const token = req.headers['authorization'];
+	const token = req.headers['authorization'].split('Bearer ')[1];
 	jwt.verify(token, 'private.key', function (err, decoded) {
-		if(err){
+		if (err) {
 			errorHandler(err, res);
 		}
 		Project.findOne({ author: decoded._id, pid: req.body.pid }, (err1, project) => {
@@ -183,13 +184,39 @@ app.post('/api/zone/', (req, res) => {
 	});
 });
 
+//Create new mobile
+app.post('/api/mobile', (req, res) => {
+	const token = req.headers['authorization'].split('Bearer ')[1];
+	jwt.verify(token, 'private.key', function (err, decode) {
+		if (err)
+			errorHandler(err, res);
+		else {
+			console.log(req.body);
+			Project.findOne({ pid: req.body.pid, author: decode._id }, (err1, project) => {
+				if (err1 || project === null)
+					errorHandler(err1, res);
+				else {
+					project.mobiles.counter++;
+					project.mobiles.apps.push({ mid: project.mobiles.counter });
+					project.save((err2, update) => {
+						if (err2)
+							errorHandler(err2, res);
+						else
+							res.json({ status: 200, update })
+					});
+				}
+			});
+		}
+	});
+})
+
 function errorHandler(err, res, status = 403) {
 	res.status(status);
 	res.json({ status, err });
 }
 
 function verifyToken(req, res, next) {
-	const token = req.headers['authorization'];
+	const token = req.headers['authorization'].split('Bearer ')[1];
 	if (token == null || token == '' || token === undefined) {
 		res.sendStatus(401);
 	}
@@ -199,6 +226,35 @@ function verifyToken(req, res, next) {
 		}
 		next();
 	});
+}
+
+function verifyAccess(req, res, next) {
+	const access_name = req.headers['authorization'].split('Access ')[1].split('Bearer ')[0];
+	const method = req.method;
+	const route = req.path;
+	const rule = { method, route }
+
+	if (access[access_name] === '*') {
+		return next();
+	}
+	let ok = false;
+	access[access_name].forEach(element => {
+		if (element.method === rule.method) {
+			let route_e = element.route;
+			let route_r = rule.route;
+			if (route_e.split('/')[route_e.split('/').length - 1] === ':id') {
+				route_e = route_e.replace(':id', route_r.split('/')[route_e.split('/').length - 1]);
+			}
+			if (route_e == route_r)
+				ok = true;
+		}
+	});
+
+	if (ok) {
+		next();
+	} else {
+		res.sendStatus(401);
+	}
 }
 
 app.listen(3002, () => console.log('CADO Backend start at port 3002'));
