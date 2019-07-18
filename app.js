@@ -88,8 +88,66 @@ app.get('/api/project/:pid', (req, res) => {
 	});
 });
 
-//Private route
+//Authentifiate mobile app
+app.post('/api/mobile/auth', (req, res) => {
+	console.log('Auth mobile app');
+	Project.findOne({ pid: req.body.pid }, (err, project) => {
+		if(err){
+			errorHandler(err, res)
+		} else {
+			if(project.mobiles.apps.find((e) =>  e.mid === req.body.mid) !== null){
+				console.log(project);
+				//change mobile mid status to use
+				res.json({ status: 200, project});
+			} else {
+				res.sendStatus(401);
+			}
+		}
+	});
+});
 
+app.post('/api/mobile/marker', (req, res) => {
+	Project.findOne({ pid: req.body.pid}, (err, project) => {
+		if(err){
+			errorHandler(err, res);
+		} else {
+			if(project.mobiles.apps.find((e) =>  e.mid === req.body.mid) !== null){
+				Array.prototype.push.apply(project.markers, req.body.marker);	
+				project.save((p) => {
+					res.sendStatus(200);
+				});
+			} else {
+				res.sendStatus(401);
+			}
+		}
+	});
+});
+
+app.delete('/api/mobile/marker', (req, res) => {
+	Project.findOne({ pid: req.body.pid }, (err, project) => {
+		if(err || project === null){
+			errorHandler(err, res);
+		} else {
+			for(let i = 0; i < project.markers.length; i++){
+				console.log(project.markers[i]._id + "," + req.body.marker_id);
+				if(project.markers[i]._id.toString() === req.body.marker_id){
+					console.log('SPLICE');
+					project.markers.splice(i, 1);
+					break;
+				}
+			}
+			project.save((err_save) => {
+				if(err_save){
+					errorHandler(err_save, res);
+				} else {
+					res.json({ status: 200, project});
+				}
+			});
+		}
+	});
+});
+
+//Private route
 //Verify Token before read and write on API
 app.use(verifyToken);
 
@@ -216,6 +274,8 @@ function errorHandler(err, res, status = 403) {
 }
 
 function verifyToken(req, res, next) {
+
+	console.log('verify token');
 	const token = req.headers['authorization'].split('Bearer ')[1];
 	if (token == null || token == '' || token === undefined) {
 		res.sendStatus(401);
@@ -233,7 +293,7 @@ function verifyAccess(req, res, next) {
 	const method = req.method;
 	const route = req.path;
 	const rule = { method, route }
-
+	console.log('verify access');
 	if (access[access_name] === '*') {
 		return next();
 	}

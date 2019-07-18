@@ -11,7 +11,7 @@ const ProjectModel = new mongoose.Schema({
 		counter: { type: Number, default: 0 },
 		apps: [{ mid: {type: Number, unique: true } }]
 	},
-	mark: [{ lat: Number, lng: Number }],
+	markers: [{ title: String, details: String, lat: Number, lng: Number }],
 	description: { type: String, default: 'Un nouveau projet' },
 	author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
