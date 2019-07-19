@@ -18,6 +18,10 @@ UserModel.plugin(autoIncrement.plugin, { model: 'User', field: 'uid' });
 
 //Encrypt user password before save
 UserModel.pre('save', function (next) {
+    // only hash the password if it has been modified (or is new)
+    if (!this.isModified('password')) {
+        next();
+    }
     bcrypt.hash(this.password, 10, (err, hash) => {
         if (err) {
             return next(err);

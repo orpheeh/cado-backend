@@ -32,6 +32,7 @@ app.post('/api/register', (req, res) => {
 				errorHandler(err, res);
 			} else {
 				//Send Token for authentification
+				console.log("[REGISTER]" + newUser.username + ": " + newUser.password);
 				res.json({
 					status: 200,
 					newUser
@@ -52,6 +53,7 @@ app.post('/api/auth', (req, res) => {
 			return;
 		}
 		bcrypt.compare(req.body.password, user.password, function (err2, result) {
+			console.log("response: " + result);
 			if (result == true) {
 				//Create token
 				const payload = {
@@ -65,6 +67,7 @@ app.post('/api/auth', (req, res) => {
 					if (err3) {
 						errorHandler(err3, res);
 					}
+					console.log(user.username + " : " + user.password);
 					res.json({ status: 200, token });
 				});
 			} else {
@@ -129,9 +132,7 @@ app.delete('/api/mobile/marker', (req, res) => {
 			errorHandler(err, res);
 		} else {
 			for(let i = 0; i < project.markers.length; i++){
-				console.log(project.markers[i]._id + "," + req.body.marker_id);
 				if(project.markers[i]._id.toString() === req.body.marker_id){
-					console.log('SPLICE');
 					project.markers.splice(i, 1);
 					break;
 				}
@@ -174,8 +175,10 @@ app.post('/api/project/', (req, res) => {
 	jwt.verify(token, 'private.key', function (err, decoded) {
 		req.body.author = decoded._id;
 		const project = new Project(req.body);
+		console.log(req.body);
 		project.save((err1, newProject) => {
 			if (err1) {
+				console.log(err1);
 				errorHandler(err1, res);
 			} else {
 				User.findOne({ uid: decoded.uid }, (err3, user) => {
@@ -249,7 +252,6 @@ app.post('/api/mobile', (req, res) => {
 		if (err)
 			errorHandler(err, res);
 		else {
-			console.log(req.body);
 			Project.findOne({ pid: req.body.pid, author: decode._id }, (err1, project) => {
 				if (err1 || project === null)
 					errorHandler(err1, res);
@@ -275,7 +277,6 @@ function errorHandler(err, res, status = 403) {
 
 function verifyToken(req, res, next) {
 
-	console.log('verify token');
 	const token = req.headers['authorization'].split('Bearer ')[1];
 	if (token == null || token == '' || token === undefined) {
 		res.sendStatus(401);
@@ -293,7 +294,6 @@ function verifyAccess(req, res, next) {
 	const method = req.method;
 	const route = req.path;
 	const rule = { method, route }
-	console.log('verify access');
 	if (access[access_name] === '*') {
 		return next();
 	}
@@ -317,4 +317,4 @@ function verifyAccess(req, res, next) {
 	}
 }
 
-app.listen(3002, () => console.log('CADO Backend start at port 3002'));
+app.listen(3002, () => console.log('CADO up 3002 ...'));

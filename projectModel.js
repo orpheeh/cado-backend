@@ -9,7 +9,7 @@ const ProjectModel = new mongoose.Schema({
 	zone: [{ lng: Number, lat: Number }],
 	mobiles: {
 		counter: { type: Number, default: 0 },
-		apps: [{ mid: {type: Number, unique: true } }]
+		apps: [{ mid: { type: Number , unique: true, sparse: true,} }]
 	},
 	markers: [{ title: String, details: String, lat: Number, lng: Number }],
 	description: { type: String, default: 'Un nouveau projet' },
