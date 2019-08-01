@@ -9,7 +9,7 @@ const ProjectModel = new mongoose.Schema({
 	zone: [{ lng: Number, lat: Number }],
 	mobiles: {
 		counter: { type: Number, default: 0 },
-		apps: [{ mid: { type: Number , unique: true, sparse: true,} }]
+		apps: [{ mid: Number }]
 	},
 	markers: [{ title: String, details: String, lat: Number, lng: Number }],
 	description: { type: String, default: 'Un nouveau projet' },
@@ -18,4 +18,4 @@ const ProjectModel = new mongoose.Schema({
 
 ProjectModel.plugin(autoIncrement.plugin, { model: 'Project', field: 'pid' });
 
-module.export = mongoose.model('Project', ProjectModel);
+module.exports = mongoose.model('Project', ProjectModel);
