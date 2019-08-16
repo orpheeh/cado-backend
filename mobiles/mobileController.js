@@ -29,7 +29,7 @@ exports.create_mobile_post = function (req, res) {
 exports.authentify_mobile = function (req, res) {
 	console.log('authentify user');
 	Project.findOne({ pid: req.body.pid }, (err, project) => {
-		if (err) {
+		if (err || project === null) {
 			errorHandler(err, res);
 		} else {
 			if (project.mobiles.apps.find((e) => e.mid === req.body.mid) !== null) {

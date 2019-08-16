@@ -1,10 +1,34 @@
 
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 const Project = require('./projectModel');
 const User = require('../users/userModel');
+const Accumulation = require('../accumulation/accumulationModel');
+
+exports.save_image = function (req, res) {
+    const name = 'accumulation-' + req.body.name;
+    const img = req.body.image;
+    const lat = req.body.lat;
+    const lng = req.body.lng;
+    //Save on Database
+    console.log({ name, lat, lng });
+    const acc = new Accumulation({ name, lat, lng });
+    acc.save((err, accumulation) => {
+        if(err){
+            res.sendStatus(500);
+        } else {
+            console.log(accumulation);
+            const realFile = Buffer.from(img, "base64");
+            fs.writeFile(__dirname + '/images/' + name, realFile, function (err) {
+                if (err)
+                    console.log(err);
+            });
+            res.json({ accumulation });
+        }
+    });
+}
 
 exports.create_project_post = function (req, res) {
     const token = req.headers['authorization'].split('Bearer ')[1];
@@ -79,12 +103,12 @@ exports.get_all_project = function (req, res) {
     });
 }
 
-exports.get_one_project = function(req, res){
+exports.get_one_project = function (req, res) {
     Project.findOne({ pid: req.params.pid }, (err, project) => {
-		if (err) {
-			errorHandler(err, res);
-		} else {
-			res.json({ status: 200, project });
-		}
-	});
+        if (err) {
+            errorHandler(err, res);
+        } else {
+            res.json({ status: 200, project });
+        }
+    });
 }

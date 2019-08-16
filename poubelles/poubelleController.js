@@ -20,6 +20,7 @@ exports.create_poubelle = function(req, res){
 }
 
 exports.get_all_poubelle = function(req, res){
+    console.log("request poubelle !");
     Poubelle.find({}, (err, poubelles) => {
         if(err){
             res.status(200);
@@ -27,6 +28,7 @@ exports.get_all_poubelle = function(req, res){
                 status: 403,
             });
         } else {
+            console.log('request all poubelle, done !');
             res.json({
                 status: 200,
                 poubelles
